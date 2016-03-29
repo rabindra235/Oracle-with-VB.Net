@@ -1,0 +1,1113 @@
+Imports Oracle.DataAccess.Client
+
+Public Class Form1
+
+    Private Sub TextBox1_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OutputTextMessage.TextChanged
+
+    End Sub
+
+    Function CreateConnection() As OracleConnection
+        Dim dbConn As New OracleConnection
+        dbConn.ConnectionString = GetConnectionString()
+        Return dbConn
+    End Function
+
+    Function GetConnectionString() As String
+        Dim vConnStr As String
+        vConnStr = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)"
+        vConnStr = vConnStr & "(HOST=ictoraclesvm1.ict.swin.edu.au)(PORT=1521))"
+        vConnStr = vConnStr & "(CONNECT_DATA=(SID=dms)));"
+        vConnStr = vConnStr & "User Id=s4957830;"
+        vConnStr = vConnStr & "Password=Div@123;"
+        Return vConnStr
+    End Function
+    Private Sub AddCustomerToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddCustomerToolStripMenuItem.Click
+        AddCustomer()
+    End Sub
+    Private Sub AddCustomer()
+        OutputTextMessage.Text = ""
+        Dim vCustId As Integer = Val(InputBox("Please provide Customer ID"))
+        Dim vCustName As String = InputBox("Please provide Customer Name")
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Adding Customer : ID - " & vCustId & " Name: " & vCustName
+            Add_Customer_Procedure(dbConn, dbTran, vCustId, vCustName)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Customer Added OK"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Add_Customer_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pCustId As Integer, ByVal pCustName As String)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "ADD_CUSTOMER_TO_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("CUSTID", pCustId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+
+            Dim Parameter2 As OracleParameter = New OracleParameter("PCUSTNAME", pCustName)
+            Parameter2.Direction = ParameterDirection.Input
+            Parameter2.OracleDbType = OracleDbType.Varchar2
+            dbCmd.Parameters.Add(Parameter2)
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+    Private Sub DeleteCustomerToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DeleteCustomerToolStripMenuItem.Click
+        DeleteCustomer()
+    End Sub
+    Private Sub DeleteCustomer()
+        Dim returnCount As Integer
+        OutputTextMessage.Text = ""
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Deleting All Customer rows"
+            returnCount = Delete_Customer_Procedure(dbConn, dbTran)
+            dbTran.Commit()
+
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & returnCount & " rows deleted"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Function Delete_Customer_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction) As Integer
+        Try
+            Dim dbCmd As New OracleCommand
+            Dim returnCount As Integer
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "DELETE_ALL_CUSTOMERS_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.Int32
+            Parameter2.Size = 900
+            dbCmd.Parameters.Add(Parameter2)
+
+            returnCount = dbCmd.ExecuteNonQuery()
+            returnCount = Convert.ToInt32(dbCmd.Parameters("preturnText").Value.ToString())
+            Return returnCount
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+    Private Sub AddProductToDBToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddProductToDBToolStripMenuItem.Click
+        AddProduct()
+    End Sub
+    Private Sub AddProduct()
+        OutputTextMessage.Text = ""
+        Dim vProdId As Integer = Val(InputBox("Please provide Product ID"))
+        Dim vProdName As String = InputBox("Please privde Product Name")
+        Dim vProdPrice As Integer = Val(InputBox("Please provide Product Price"))
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Adding Product : ID - " & vProdId & " Name: " & vProdName & " Price: " & vProdPrice
+            Add_Product_Procedure(dbConn, dbTran, vProdId, vProdName, vProdPrice)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Product Added OK"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Add_Product_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pProdId As Integer, ByVal pProdName As String, ByVal pProdPrice As Integer)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "ADD_PRODUCT_TO_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("PRODID", pProdId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+
+            Dim Parameter2 As OracleParameter = New OracleParameter("PPRODNAME", pProdName)
+            Parameter2.Direction = ParameterDirection.Input
+            Parameter2.OracleDbType = OracleDbType.Varchar2
+            dbCmd.Parameters.Add(Parameter2)
+
+            Dim Parameter3 As OracleParameter = New OracleParameter("PPRICE", pProdPrice)
+            Parameter3.Direction = ParameterDirection.Input
+            Parameter3.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter3)
+
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+    Private Sub DeleteProductsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DeleteProductsToolStripMenuItem.Click
+        DeleteProduct()
+    End Sub
+
+    Private Sub DeleteProduct()
+        OutputTextMessage.Text = ""
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+        Dim returnCount As Integer
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Deleting All Product rows"
+            returnCount = Delete_Product_Procedure(dbConn, dbTran)
+            dbTran.Commit()
+
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & returnCount & " rows deleted"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Function Delete_Product_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction) As Integer
+        Try
+            Dim dbCmd As New OracleCommand
+            Dim returnCount As Integer
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "DELETE_ALL_PRODUCTS_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.Int32
+            Parameter2.Size = 900
+            dbCmd.Parameters.Add(Parameter2)
+
+            dbCmd.ExecuteNonQuery()
+
+            returnCount = Convert.ToInt32(dbCmd.Parameters("preturnText").Value.ToString())
+            Return returnCount
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+    Private Sub GetCustomerToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetCustomerToolStripMenuItem.Click
+        GetCustomer()
+    End Sub
+    Private Sub GetCustomer()
+        OutputTextMessage.Text = ""
+        Dim vCustId As Integer = Val(InputBox("Please provide Customer ID"))
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+        Dim returnString As String
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Getting Details for Customer Id : " & vCustId
+            returnString = Get_Customer_Procedure(dbConn, dbTran, vCustId)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & returnString
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Function Get_Customer_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pCustId As Integer) As String
+        Try
+
+            Dim dbCmd As New OracleCommand
+            Dim returnStr As String
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "GET_CUST_STRING_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.Varchar2
+            Parameter2.Size = 900
+            dbCmd.Parameters.Add(Parameter2)
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("CUSTID", pCustId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+
+
+            dbCmd.ExecuteNonQuery()
+            returnStr = dbCmd.Parameters.Item("preturnText").Value.ToString
+            Return returnStr
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+    Private Sub UpdateToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles UpdateToolStripMenuItem.Click
+        UpdateCustomerSales()
+    End Sub
+    Private Sub UpdateCustomerSales()
+        OutputTextMessage.Text = ""
+        Dim vCustId As Integer = Val(InputBox("Please provide Customer ID"))
+        Dim vSaleAmt As Integer = Val(InputBox("Please provide sale Amount"))
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Updating SalesYTD for Customer ID : " & vCustId & " Amount : " & vSaleAmt
+            Update_Customer_Sales_Procedure(dbConn, dbTran, vCustId, vSaleAmt)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Updated OK"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Update_Customer_Sales_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pCustId As Integer, ByVal pSaleAmt As Integer)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "UPD_CUST_SALESYTD_IN_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("CUSTID", pCustId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+
+            Dim Parameter2 As OracleParameter = New OracleParameter("SALES_YTD", pSaleAmt)
+            Parameter2.Direction = ParameterDirection.Input
+            Parameter2.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter2)
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+
+    Private Sub GetProductToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetProductToolStripMenuItem.Click
+        GetProduct()
+    End Sub
+    Private Sub GetProduct()
+        OutputTextMessage.Text = ""
+        Dim vProdId As Integer = Val(InputBox("Please provide Product ID"))
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+        Dim returnString As String
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Getting details for Product Id : " & vProdId
+            returnString = Get_Product_Procedure(dbConn, dbTran, vProdId)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & returnString
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Function Get_Product_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pProdId As Integer) As String
+        Try
+
+            Dim dbCmd As New OracleCommand
+            Dim returnStr As String
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandType = CommandType.StoredProcedure
+            dbCmd.CommandText = "GET_PROD_STRING_FROM_DB"
+
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.Varchar2
+            Parameter2.Size = 900
+            dbCmd.Parameters.Add(Parameter2)
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("PRODID", pProdId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+
+            dbCmd.ExecuteNonQuery()
+
+            returnStr = dbCmd.Parameters.Item("preturnText").Value.ToString
+            Return returnStr
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+
+
+    Private Sub UpdateProductSaleToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles UpdateProductSaleToolStripMenuItem.Click
+        UpdateProductSales()
+    End Sub
+    Private Sub UpdateProductSales()
+        OutputTextMessage.Text = ""
+        Dim vProdId As Integer = Val(InputBox("Please provide Product ID"))
+        Dim vSaleAmt As Integer = Val(InputBox("Please provide sale Amount"))
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Updating SalesYTD for Product ID : " & vProdId & " Amount : " & vSaleAmt
+            Update_Product_Sales_Procedure(dbConn, dbTran, vProdId, vSaleAmt)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Updated OK"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Update_Product_Sales_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pProdId As Integer, ByVal pSaleAmt As Integer)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "UPD_PROD_SALESYTD_IN_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("PRODID", pProdId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+
+            Dim Parameter2 As OracleParameter = New OracleParameter("SALES_YTD", pSaleAmt)
+            Parameter2.Direction = ParameterDirection.Input
+            Parameter2.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter2)
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+    Private Sub UpdateCustomerStatusToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles UpdateCustomerStatusToolStripMenuItem.Click
+        UpdateCustomerStatus()
+    End Sub
+
+    Private Sub UpdateCustomerStatus()
+        OutputTextMessage.Text = ""
+        Dim vCustId As Integer = Val(InputBox("Please provide Customer ID"))
+        Dim vStatus As String = InputBox("Please provide status")
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Updating Status for Customer ID : " & vCustId & " Status : " & vStatus
+            Update_Customer_Status_Procedure(dbConn, dbTran, vCustId, vStatus)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Updated Customer Status OK"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Update_Customer_Status_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pCustId As Integer, ByVal pStatus As String)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "UPD_CUST_STATUS_IN_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("CUSTID", pCustId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+
+            Dim Parameter2 As OracleParameter = New OracleParameter("STATUS", pStatus)
+            Parameter2.Direction = ParameterDirection.Input
+            Parameter2.OracleDbType = OracleDbType.Varchar2
+            dbCmd.Parameters.Add(Parameter2)
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+
+    Private Sub AddSimpleSaleToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddSimpleSaleToolStripMenuItem.Click
+        AddSimpleSale()
+    End Sub
+
+    Private Sub AddSimpleSale()
+        OutputTextMessage.Text = ""
+        Dim vCustId As Integer = Val(InputBox("Please provide Customer ID"))
+        Dim vProdId As Integer = Val(InputBox("Please provide Product ID"))
+        Dim vQty As Integer = Val(InputBox("Please provide Quantity"))
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Adding Simple Sale Cust ID : " & vCustId & " Prod Id : " & vProdId & " Qty : " & vQty
+            Add_Simple_Sale_Procedure(dbConn, dbTran, vCustId, vProdId, vQty)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Added Simple Sale OK"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Add_Simple_Sale_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pCustId As Integer, ByVal pProdId As Integer, ByVal pQty As Integer)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "ADD_SIMPLE_SALE_TO_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("CUSTID", pCustId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+
+            Dim Parameter2 As OracleParameter = New OracleParameter("PRODID", pProdId)
+            Parameter2.Direction = ParameterDirection.Input
+            Parameter2.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter2)
+
+            Dim Parameter3 As OracleParameter = New OracleParameter("QTY", pQty)
+            Parameter3.Direction = ParameterDirection.Input
+            Parameter3.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter3)
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+    Private Sub SumCustomerSalesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles SumCustomerSalesToolStripMenuItem.Click
+        SumCustomerSales()
+    End Sub
+    Private Sub SumCustomerSales()
+        OutputTextMessage.Text = ""
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+        Dim returnString As Integer
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Summing Customer SalesYTD"
+            returnString = Sum_Customer_Sales_Procedure(dbConn, dbTran)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Sum of Customer Sales is " & returnString
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Function Sum_Customer_Sales_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction) As Integer
+        Try
+
+            Dim dbCmd As New OracleCommand
+            Dim returnCount As Integer
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandType = CommandType.StoredProcedure
+            dbCmd.CommandText = "SUM_CUST_SALESYTD_FROM_DB"
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.Int32
+            Parameter2.Size = 900
+            dbCmd.Parameters.Add(Parameter2)
+
+            dbCmd.ExecuteNonQuery()
+
+            returnCount = Convert.ToInt32(dbCmd.Parameters("preturnText").Value.ToString())
+            Return returnCount
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+
+
+    Private Sub AddComplexSaleToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddComplexSaleToolStripMenuItem.Click
+        AddComplexSale()
+    End Sub
+    Private Sub AddComplexSale()
+        OutputTextMessage.Text = ""
+        Dim vCustId As Integer = Val(InputBox("Please provide Customer ID"))
+        Dim vProdId As Integer = Val(InputBox("Please provide Product ID"))
+        Dim vQty As Integer = Val(InputBox("Please provide Quantity"))
+        Dim vDate As String = InputBox("Please provide Date")
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Adding Complex Sale Cust ID : " & vCustId & " Prod Id : " & vProdId & " Qty : " & vQty & " Date " & vDate
+            Add_Complex_Sale_Procedure(dbConn, dbTran, vCustId, vProdId, vQty, vDate)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Added Complex Sale OK"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Add_Complex_Sale_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pCustId As Integer, ByVal pProdId As Integer, ByVal pQty As Integer, ByVal pDate As String)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "ADD_COMPLEX_SALE_TO_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("CUSTID", pCustId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+
+            Dim Parameter2 As OracleParameter = New OracleParameter("PRODID", pProdId)
+            Parameter2.Direction = ParameterDirection.Input
+            Parameter2.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter2)
+
+            Dim Parameter3 As OracleParameter = New OracleParameter("QTY", pQty)
+            Parameter3.Direction = ParameterDirection.Input
+            Parameter3.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter3)
+
+            Dim Parameter4 As OracleParameter = New OracleParameter("DATE", pDate)
+            Parameter4.Direction = ParameterDirection.Input
+            Parameter4.OracleDbType = OracleDbType.Varchar2
+            dbCmd.Parameters.Add(Parameter4)
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+
+
+    Private Sub CountProductSalesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles CountProductSalesToolStripMenuItem.Click
+        CountProductSales()
+    End Sub
+    Private Sub CountProductSales()
+        OutputTextMessage.Text = ""
+        Dim vNumDays As Integer = Val(InputBox("Please provide Number of Days from the current day you wish to see your sales"))
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+        Dim returnString As Integer
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Counting Sales within " & vNumDays & " Days"
+            returnString = Count_Product_Sales_Procedure(dbConn, dbTran, vNumDays)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Total Number of Sales " & returnString
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Function Count_Product_Sales_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pNumDays As Integer) As Integer
+        Try
+
+            Dim dbCmd As New OracleCommand
+            Dim returnCount As Integer
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandType = CommandType.StoredProcedure
+            dbCmd.CommandText = "COUNT_PRODUCT_SALES_FROM_DB"
+
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.Int32
+            Parameter2.Size = 900
+            dbCmd.Parameters.Add(Parameter2)
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("DAYS", pNumDays)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Varchar2
+            dbCmd.Parameters.Add(Parameter1)
+
+
+            dbCmd.ExecuteNonQuery()
+
+            returnCount = Convert.ToInt32(dbCmd.Parameters.Item("preturnText").Value.ToString())
+
+            Return returnCount
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+
+
+    Private Sub DeleteSaleToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DeleteSaleToolStripMenuItem.Click
+        DeleteSale()
+    End Sub
+    Private Sub DeleteSale()
+        Dim returnCount As Integer
+        OutputTextMessage.Text = ""
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Deleting Sale with smallest SaleId value"
+            returnCount = Delete_Sale_Procedure(dbConn, dbTran)
+            dbTran.Commit()
+
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & " Deleted Sale OK. SaleId" & returnCount
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Function Delete_Sale_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction) As Integer
+        Try
+            Dim dbCmd As New OracleCommand
+            Dim returnCount As Integer
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "DELETE_SALE_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.Int32
+            Parameter2.Size = 900
+            dbCmd.Parameters.Add(Parameter2)
+
+            dbCmd.ExecuteNonQuery()
+
+            returnCount = Convert.ToInt32(dbCmd.Parameters.Item("preturnText").Value.ToString())
+
+            Return returnCount
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+
+    Private Sub DeleteAllSalesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DeleteAllSalesToolStripMenuItem.Click
+        DeleteAllSales()
+    End Sub
+    Private Sub DeleteAllSales()
+        OutputTextMessage.Text = ""
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Deleting All Sales data in Sale, Customer and Product tables"
+            Delete_All_Sales_Procedure(dbConn, dbTran)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Deletion OK"
+
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Delete_All_Sales_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "DELETE_ALL_SALES_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+
+    Private Sub DeleteCustomerFromDBToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DeleteCustomerFromDBToolStripMenuItem.Click
+        DeleteCustomerFromDB()
+    End Sub
+    Private Sub DeleteCustomerFromDB()
+        OutputTextMessage.Text = ""
+        Dim vCustId As Integer = Val(InputBox("Please provide Customer ID"))
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Deleting Customer. Cust : ID - " & vCustId
+            Delete_Customer_From_DB_Procedure(dbConn, dbTran, vCustId)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Deleted Customer OK"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Delete_Customer_From_DB_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pCustId As Integer)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "DELETE_CUSTOMER_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("CUSTID", pCustId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+
+    Private Sub DeletedProductToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DeletedProductToolStripMenuItem.Click
+        DeleteProductFromDB()
+    End Sub
+    Private Sub DeleteProductFromDB()
+        OutputTextMessage.Text = ""
+        Dim vProdId As Integer = Val(InputBox("Please provide Product ID"))
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Deleting Customer. Prod : ID - " & vProdId
+            Delete_Product_From_DB_Procedure(dbConn, dbTran, vProdId)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & "Deleted Product OK"
+        Catch oracleEx As OracleException
+            dbTran.Rollback()
+            Dim lastIndex As Integer = (oracleEx.Message.ToString().Substring(10)).IndexOfAny("ORA")
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & oracleEx.Message.ToString().Substring(0, lastIndex + 10)
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Sub Delete_Product_From_DB_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction, ByVal pProdId As Integer)
+        Try
+
+            Dim dbCmd As New OracleCommand
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "DELETE_PROD_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter1 As OracleParameter = New OracleParameter("PRODID", pProdId)
+            Parameter1.Direction = ParameterDirection.Input
+            Parameter1.OracleDbType = OracleDbType.Int32
+            dbCmd.Parameters.Add(Parameter1)
+            dbCmd.ExecuteNonQuery()
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Sub
+    Private Sub GetAllSalesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetAllSalesToolStripMenuItem.Click
+        GetAllSales()
+    End Sub
+    Private Sub GetAllSales()
+        OutputTextMessage.Text = ""
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+        Dim returnString As String
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Listing All Complex Sale Details"
+            returnString = Get_All_Sales_Procedure(dbConn, dbTran)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & returnString
+
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Function Get_All_Sales_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction) As String
+        Try
+
+            Dim dbCmd As New OracleCommand
+            Dim returnStr As String = ""
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "GET_ALL_VB_SALES.GET_ALLSALES_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.RefCursor
+            dbCmd.Parameters.Add(Parameter2)
+
+            Dim readerOracle As Oracle.DataAccess.Client.OracleDataReader
+            readerOracle = dbCmd.ExecuteReader()
+            If readerOracle.HasRows = True Then
+                Do While readerOracle.Read()
+                    returnStr = returnStr & vbCrLf & "Sale Id: " & readerOracle("saleid") & " Cust Id: " & readerOracle("custid") & " ProdId: " & readerOracle("prodid") & " Date: " & readerOracle("saledate") & " Amount: " & readerOracle("qty") * readerOracle("price")
+                Loop
+            Else
+                returnStr = "No rows found"
+            End If
+
+            Return returnStr
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+
+    Private Sub GetAllCustomerDataToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetAllCustomerDataToolStripMenuItem.Click
+        GetAllCustomerData()
+    End Sub
+    Private Sub GetAllCustomerData()
+        OutputTextMessage.Text = ""
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+        Dim returnString As String
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Listing All Customer Details"
+            returnString = Get_All_CustDetails_Procedure(dbConn, dbTran)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & returnString
+
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Function Get_All_CustDetails_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction) As String
+        Try
+
+            Dim dbCmd As New OracleCommand
+            Dim returnStr As String = ""
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "GET_ALL_VB_CUSTOMERS.GET_ALLCUST_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.RefCursor
+            dbCmd.Parameters.Add(Parameter2)
+
+            Dim readerOracle As Oracle.DataAccess.Client.OracleDataReader
+            readerOracle = dbCmd.ExecuteReader()
+            If readerOracle.HasRows = True Then
+                Do While readerOracle.Read()
+                    returnStr = returnStr & vbCrLf & "Cust Id: " & readerOracle("custid") & " Name: " & readerOracle("custname") & " Status: " & readerOracle("status") & " SalesYTD: " & readerOracle("Sales_YTd")
+                Loop
+            Else
+                returnStr = "No rows found"
+            End If
+            Return returnStr
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+    Private Sub GetAllProductDataToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetAllProductDataToolStripMenuItem.Click
+        GetAllProductData()
+    End Sub
+    Private Sub GetAllProductData()
+        OutputTextMessage.Text = ""
+        Dim dbConn As OracleConnection = Nothing
+        Dim dbTran As OracleTransaction = Nothing
+        Dim returnString As String
+        Try
+            dbConn = CreateConnection()
+            dbConn.Open()
+            dbTran = dbConn.BeginTransaction(IsolationLevel.ReadCommitted)
+            OutputTextMessage.Text = "Listing All Product Details"
+            returnString = Get_All_ProdDetails_Procedure(dbConn, dbTran)
+            dbTran.Commit()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & returnString
+
+        Catch ex As Exception
+            dbTran.Rollback()
+            OutputTextMessage.Text = OutputTextMessage.Text & vbCrLf & ex.Message
+        Finally
+            dbConn.Close()
+        End Try
+    End Sub
+    Private Function Get_All_ProdDetails_Procedure(ByVal dbConn As OracleConnection, ByVal dbTran As OracleTransaction) As String
+        Try
+
+            Dim dbCmd As New OracleCommand
+            Dim returnStr As String = ""
+            dbCmd.Connection = dbConn
+            dbCmd.Transaction = dbTran
+            dbCmd.CommandText = "GET_ALL_VB_PRODUCTS.GET_ALLPROD_FROM_DB"
+            dbCmd.CommandType = CommandType.StoredProcedure
+
+            Dim Parameter2 As OracleParameter = New OracleParameter
+            Parameter2.ParameterName = "preturnText"
+            Parameter2.Direction = ParameterDirection.ReturnValue
+            Parameter2.OracleDbType = OracleDbType.RefCursor
+            dbCmd.Parameters.Add(Parameter2)
+
+            Dim readerOracle As Oracle.DataAccess.Client.OracleDataReader
+            readerOracle = dbCmd.ExecuteReader()
+            If readerOracle.HasRows = True Then
+                Do While readerOracle.Read()
+                    returnStr = returnStr & vbCrLf & "Prod Id: " & readerOracle("prodid") & " Name: " & readerOracle("prodname") & " Price: " & readerOracle("selling_price") & " SalesYTD: " & readerOracle("Sales_YTd")
+                Loop
+            Else
+                returnStr = "No rows found"
+            End If
+            Return returnStr
+        Catch ex As Exception
+            Throw ex
+        End Try
+    End Function
+End Class
